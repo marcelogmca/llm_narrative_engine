@@ -13,7 +13,7 @@ This was created to get a deeper understanding of modern AI techniques and solve
 * SillyTavern: A fantastic tool with a lot of depth and capabilities, but it's also its weakness. It feels overwhelming and is too complex for the average user who just wants a plug & play experience.
 * RisuAI: Simple to use but lacks more advanced features.
 
-However what I found on every RP (role-playing) system is that they all share the same limitation: They strive to complete the user's narrative on mostly one LLM call. This is correct for the user experience to feel snappy and to save costs, but nowadays high end popular models have gotten very cheap, so it's now reasonable to have a multi-agent RP experience, where we give each LLM a specific task instead of relying on large monolithic API calls that result in subpar output due to LLM's instruction overflow and attention drift. Using a multi-agent setup ensures every part of the experience goes to it's fullest potential and the narrative retains supreme quality and consistency. 
+However what I found on every RP (role-playing) system is that they all share the same limitation: They strive to complete the user's narrative on mostly one LLM call and have very limited multi-character support. This is correct for the user experience to feel snappy and to save costs, but nowadays high end popular models have gotten very cheap, so it's now reasonable to have a multi-agent RP experience, where we give each LLM a specific task instead of relying on large monolithic API calls that result in subpar output due to LLM's instruction overflow and attention drift. Using a multi-agent setup ensures every part of the experience goes to it's fullest potential and the narrative retains supreme quality and consistency while giving life to multiple characters simultaneously. 
 
 ## Core Vision
 
@@ -21,6 +21,7 @@ This project aims to address the fundamental limitations of other AI storytellin
 
 *   **Understand Context:** Distil a sophisticated layered memory system. It provides the AI with deep, nested, regressive context by filtering relevant context from the story's entire history.
 *   **Consistent Ongoing Narrative:** Maintain a factual "world brain" which tracks characters, locations, relationships, and inventory, and prevent logical contradictions.
+*   **Multi Character Support:** Supports multiple characters at once, they can enter and leave the scenes at will, appear on the screen simultaneously, interact and each have their own personalities, relationship tracking and goals.
 *   **Allow Ongoing Character Development:** Characters must change, and so too must their relationships, dynamically over recent previous events as the narrative evolves.
 *   **Empower the Creator:** All-in-one environment for world-building, writing, testing, and experiencing the final story.
 *   **Drag & Drop Asset Management:** No manual definition of every visual asset. Simply drop "Forest.png", "Desert.png" to the project's background folder or "Tivo_happy.png", "Tivo_sad.png" for automatic asset usage.
@@ -72,11 +73,15 @@ The engine is a modular, event-driven architecture—designed for resiliency and
 
 ## Visual Showcase
 
-| In-App Editor & File Management | Visual Novel Runtime |
-| :---: | :---: |
-| ![Editor Screenshot](placeholder_editor.png) | ![Runtime Screenshot](placeholder_runtime.png) |
+| In-App Editor & File Management |
+| :---: |
+| ![Editor Screenshot](lore_management.png) |
 
-| Performance & Cost Dashboard | Memory & Log Inspector |
+| Visual Story Player |
+| :---: |
+| ![Editor Screenshot](vn_viewer.png) |
+
+| Performance & Cost Dashboard |
 | :---: | :---: |
 | ![Dashboard Screenshot](./images/logs_cost.png) |
 
