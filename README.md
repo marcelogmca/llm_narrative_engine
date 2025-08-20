@@ -41,7 +41,7 @@ This engine features a ground-up architecture with the design goals to:
 
 *   **Integrated Creation Environment:** The application is a stand-alone project and file-folder package, a contained manager where creators can construct their world bible, edit character sheets, and write world lore in the same environment. It offers an integrated workflow from concept to execution.
 
-*   **Built-in Diagnostics & Performance Monitoring:** A real-time diagnostic interface provides creators with a detailed description of each turn, including processing time and estimated token cost for each AI agent and process—enabling fine-tuning and optimization.
+*   **Built-in Diagnostics & Performance Monitoring:** A real-time diagnostic interface provides creators with API request and responses, log keeping, a detailed description of each turn, including processing time and estimated token cost for each AI agent and process—enabling fine-tuning and optimization.
 
 *   **High Modularity and Configuration:** The user can choose which modules are active, their LLM models, their third party accounts, debug level, etc.
 
