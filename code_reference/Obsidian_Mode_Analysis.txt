@@ -1,0 +1,89 @@
+### Overall Design Philosophy & User Workflow
+
+This document analyzes the modules responsible for what is termed "Obsidian Mode." This mode is built on a key design philosophy of providing flexible content management, allowing users to choose their preferred workflow.
+
+**1. Flexible Content Management: In-App or External Editor**
+
+The system now offers two primary ways to manage project files (lore, characters, system prompts):
+
+*   **In-App File Management (New):** Users can directly create, edit, and delete project files (Markdown files) within the application's UI. This provides a self-contained, streamlined workflow, eliminating the need for external tools. It's ideal for users who prefer a single application for their creative process or who don't use Obsidian.md.
+*   **External Editor Integration (Obsidian.md):** The system continues to fully support Obsidian.md as a dedicated "IDE for world-building." Users can still treat their Obsidian vault (with its structured folders like `1_System`, `2_World_Building`, etc.) as the application's static database. This offers the power of Obsidian's features (linking, graph view, plugins) for managing complex lore, completely separate from the application's runtime.
+
+This dual approach provides maximum flexibility, meeting users where they are and catering to different preferences. The "Obsidian Mode" name now refers more broadly to the file-based project structure and content management, regardless of whether an external editor is used.
+
+**2. Provide a "Stateless" Testing Harness (Dedicated Obsidian Mode View)**
+
+This mode serves as a fast, cheap, and lightweight way for a user to test their static files without the overhead of the full Visual Novel pipeline. When a user runs in this mode, the system is designed to:
+*   **Bypass the VN pipeline:** No emotion detection, sprite selection, or scene generation is triggered.
+*   **Bypass chapter management:** The system does not load the story history and, crucially, does not save the response to the chapter file. It is a one-off, stateless interaction.
+*   **Do one thing well:** Take the user's selected static files (processed as Fulltext, Summary, or Auto), combine them with a single prompt, get a raw text response from the writer LLM, and display it.
+
+This is an essential feature for rapid prototyping, allowing a user to quickly check "Is my world lore being understood?" or "Did I write my character's personality correctly?" without committing to a full, persistent story turn. The modules below detail the implementation of this workflow.
+  
+  6. modules/obsidianmode.js (Obsidian Mode Orchestrator)
+
+
+   * Purpose: This module acts as the primary orchestrator for the Obsidian Mode. It handles the initial processing
+     of user-selected directories, delegates file configuration management, and coordinates with other modules
+     like `directory_processor.js` and `prompt_builder.js` to prepare content for the LLM.
+   * Main Functions:
+       * processDirectory(dirPath): Asynchronously scans and structures a directory, loading existing file configurations and returning the processed structure.
+       * saveFileConfig(rootDirectory, config): Delegates to `obsidianmode/utils/config_manager.js` for saving file-specific settings.
+       * loadFileConfig(rootDirectory): Delegates to `obsidianmode/utils/config_manager.js` for loading file-specific settings.
+       * appendToFile(filePath, content): Appends content to a specified file.
+   * Modularity: Good. It delegates most complex logic to its utils sub-modules and `memorymanagement.js`.
+   * Dependencies: path, fs/promises, utils.js (for Logger, openrouterRequest, appendToFile, readSettings), memorymanagement.js, obsidianmode/utils/config_manager.js, obsidianmode/utils/directory_processor.js, obsidianmode/utils/cache_manager.js (specifically `baseCacheDir`), prompt_builder.js.
+   * Flow Analysis:
+       1. Directory Processing: `main.js` calls `obsidianmode.processDirectory()` (triggered by `select-directory` or
+           `refresh-directory` from `renderer_obsidian_mode.js`) to scan the user's chosen directory, load existing config, and
+          return the structure.
+       2. Prompt Building: After directory processing, `obsidianmode.js` coordinates with `prompt_builder.js` to construct the final LLM prompt based on user selections and processed content.
+
+  7. modules/obsidianmode/utils/cache_manager.js
+
+
+   * Purpose: Manages caching of processed content (summaries, synopses) for directories. It provides
+     functions to generate cache paths, ensure directories exist, and read/write cached content.
+   * Main Functions:
+       * getDirCachePath(): Generates a unique cache directory path based on the input directory.
+       * ensureCacheDir(): Ensures a specific cache directory exists.
+       * getCachedContent(): Retrieves content from a cache file.
+       * saveCachedContent(): Saves content to a cache file.
+       * hasSynopsisFile(): Checks for the existence of a synopsis file.
+   * Modularity: High. It's a focused utility for cache management.
+   * Dependencies: fs/promises, path, utils.js.
+   * Flow Analysis: Used by config_manager.js and directory_processor.js to store and retrieve configuration
+     and processed file metadata.
+
+  8. modules/obsidianmode/utils/config_manager.js
+
+
+   * Purpose: Manages saving and loading file-specific configurations (e.g., whether a file should be used in
+     full, as a summary, or auto-processed) to and from the cache. It also validates file paths during
+     loading.
+   * Main Functions:
+       * saveFileConfig(): Saves a configuration object for a given directory.
+       * loadFileConfig(): Loads and validates a configuration object for a given directory, removing entries
+         for non-existent files.
+   * Modularity: High. Focused on configuration persistence.
+   * Dependencies: fs/promises, path, utils.js, obsidianmode/utils/cache_manager.js.
+   * Flow Analysis: Called by obsidianmode.js when the user selects a directory or changes file settings in
+     the UI.
+
+
+  9. modules/obsidianmode/utils/directory_processor.js
+
+
+   * Purpose: Scans a given directory (recursively) to build a hierarchical structure of Markdown files. It
+     integrates with the cache manager and memory management to determine token counts and cache status for
+     each file. It specifically handles "lore" directories (prefixed with 3_).
+   * Main Functions:
+       * calculateTokenCount(content, isAuto): Estimates token count for file content. For 'auto' files, it uses a special logic involving `memorymanagement.CONFIG.CHUNK_SIZE` and the `hasAutoFileBeenCounted` flag to ensure only one 'auto' file contributes to the token count in a given processing cycle.
+       * getFilesRecursive(items): Flattens a directory structure to get all file objects.
+       * readDirectory(dirPath): Recursively reads a directory and builds its structure, including file paths and initial token counts.
+       * processLoreFiles(loreFiles, dirPath, config): Iterates through lore files, updates their metadata (token count, cache status, synopsis presence) based on configuration and cached data.
+       * processDirectory(dirPath, config): The main function to process an entire directory, find lore files, and apply `processLoreFiles`. It resets the `hasAutoFileBeenCounted` flag at the start of each run.
+   * Modularity: Good. It separates directory scanning from cache and memory integration.
+   * Dependencies: fs/promises, path, utils.js (for Logger, naturalSort), obsidianmode/utils/cache_manager.js, memorymanagement.js.
+   * Flow Analysis: Called by `obsidianmode.js` (which is called by `main.js`) to provide the file structure
+     displayed in the `renderer.js` UI. It's critical for the UI to show accurate token counts and cache status.

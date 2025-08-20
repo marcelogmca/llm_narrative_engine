@@ -1,0 +1,160 @@
+Overall System Flow and Order of Operations:
+
+
+  This application is a full-stack Electron application with a clear separation between the main (backend)
+  process and renderer (frontend) processes, communicating via Socket.IO. It integrates LLMs for content
+  generation, RAG for context, and a visual novel engine for presentation.
+
+  The auxiliary LLMs used through out use fractions of cents; The cost comes mainly from the writer and orchestrator.
+  Still, with the right models and providers, it's possible to generate each turn in ~1m while keeping the cost even on
+  a long RP session well under the 0.03$.
+
+  Core Components:
+
+
+   * Electron Main Process (`main.js`): The backend. Handles file system access, orchestrates module
+     interactions, and acts as a Socket.IO server.
+   * Electron Renderer Process (`renderer.js`): The main UI for file selection, prompt input, and displaying
+     LLM text output. Acts as a Socket.IO client.
+   * Electron VN Renderer Process (`renderer_vn.js`): The UI for displaying the visual novel. Also a Socket.IO
+      client.
+   * Electron Memory Inspector Renderer Process (renderer_memory.js): A dedicated UI for inspecting the contents of the RAG system's vector stores. Also a Socket.IO client.
+   * Electron Log Viewer Renderer Process (`renderer_logs.js`): A dedicated UI for viewing application logs. Also a Socket.IO client.
+   * Electron World Builder Renderer Process (`renderer_world.js`): A dedicated UI for building and managing world-related data. Also a Socket.IO client.
+   * LLM Integration: Uses OpenRouter API (via utils.openrouterRequest) for all LLM calls.
+   * RAG System (`modules/memorymanagement`): Manages contextual memory using ChromaDB and Ollama embeddings.
+   * VN Engine (`modules/vnmanager`): Transforms LLM-generated text into a visual novel sequence.
+   * File Management (`modules/obsidianmode`, `modules/chaptermanagement`): Handles reading user files (e.g.,
+     Obsidian notes), saving chat history, and managing file-specific configurations. **Now includes direct in-app project and file creation, editing, and deletion, reducing reliance on external editors.**
+   * Narrative Engine (`modules/narrativeEngine.js`): Orchestrates the LLM calls, prompt building, and integration with memory management and chapter management.
+
+  Order of Operations / Main Workflow:
+
+
+   1. Application Startup:
+       * main.js starts the Electron app.
+       * main.js initializes the Socket.IO server (startSocketServer()).
+       * main.js creates the main Electron window and loads index.html.
+       * renderer.js (in index.html) starts up, initializes its UI, and connects to the Socket.IO server.
+       * renderer.js calls loadDirectory() which requests the initial file structure and configuration from
+         main.js.
+       * main.js calls obsidianmode.processDirectory() (which uses obsidianmode/utils/directory_processor.js
+         and obsidianmode/utils/config_manager.js) to scan the project directory and load saved file settings. **This now supports both external Obsidian vaults and in-app managed project files.**
+       * The file structure and config are sent back to renderer.js, which renders the file tree and updates
+         token counts.
+
+
+   2. User Interaction (File Selection & Prompting):
+       * User selects files in renderer.js and chooses their processing mode (Full, Summary, Auto, Chat).
+       * renderer.js updates its internal state, recalculates total tokens, and calls saveConfig() to persist
+         these settings via main.js and obsidianmode/utils/config_manager.js.
+       * User types a prompt in renderer.js and clicks "Send".
+
+
+   3. LLM Processing (Text Generation):
+       * renderer.js emits a send-to-llm event to main.js with the selected files and the user's prompt.
+       * main.js calls narrativeEngine.generateNextChapter(files, prompt, rootDirectory).
+       * narrativeEngine.generateNextChapter() first calls prompt_builder.js:buildMessages().
+           * buildMessages() reads the content of selected files.
+           * For files marked "summary," it uses memorymanagement.SummarizationService to get/generate
+             summaries.
+           * For files marked "auto," it calls memorymanagement.memoryProcessor() (which uses
+             memorymanagement/utils/memory_retriever.js and memorymanagement/utils/vector_store_manager.js) to
+              retrieve relevant "memories" (chunks) from the ChromaDB vector store based on the prompt and
+             recent chat history. If new, chapters are processed and embedded via
+             memorymanagement/utils/chapter_processor.js.
+           * For the "chat" file, it retrieves recent chat history using chaptermanagement.js.
+           * All this content is assembled into the messages array for the LLM.
+           * If it's the very first turn (chapter_count === 0), narrativeEngine.generateNextChapter()
+             proactively calls orchestrator.runTurn0() to get initial writer and director feedback.
+             This feedback is then injected into the prompt for the main LLM.
+           * If there's existing writer feedback from previous turns (from the orchestrator), it's also
+             injected into the prompt.
+       * narrativeEngine.generateNextChapter() then makes the actual LLM call using utils.openrouterRequest().
+       * The LLM's text response (and any Turn 0 orchestrator feedback) is sent back to main.js.
+       * main.js emits a send-to-llm-response back to renderer.js.
+       * renderer.js receives the response, formats it (using marked), and displays it to the user.
+
+
+   4. Visual Novel Transformation & Display:
+       * In the VN tab (handled by renderer_vn.js), the user sends a message, which triggers a call to the main writing LLM 
+       (as described in step 3) to get the next block of story text.
+       * renderer_vn.js emits a generate-vn-turn event to main.js.
+       * main.js receives the event, and its first action is to call chaptermanagement.getChapters() to load the entire story history ({ chapters, properties }).
+       * main.js then calls narrativeEngine.generateNextChapter() to get the story text and any Turn 0 orchestrator feedback.
+       * main.js then calls vnmanager/vnmanager_simple.js:transformVNProject(), passing it the new story text, the full history, and other assets.
+       * transformVNProject() orchestrates a parallel pipeline using Promise.all:
+            * VN Asset Pipeline: The standard creative tasks run:
+            * Calls vnmanager/utils/dialogue_processor.js:processDialogueLines() to format the text and trigger TTS.
+            * Calls vnmanager/utils/emotion_classifier.js:batchClassifyEmotions() to determine character emotions.
+            * Calls vnmanager/utils/asset_selector.js:selectBestBackground() and selectBestOST() to choose assets.
+            * Calls vnmanager/utils/sprite_finder.js:findSprite() to select character sprite images.
+            * Calls vnmanager/utils/sprite_positioner.js:computeSpritePositions() to arrange characters on screen.
+            * Calls vnmanager/vnmanager_simple.js:generatePlayerChoices() to create interactive choices.
+       * Orchestration Pipeline: In parallel with the asset pipeline, it checks if the orchestrator should run (currently every chapter, as per `VN_MANAGER_CONFIG.ORCHESTRATOR_INTERVAL`).
+            * If so, it calls orchestrator.runPeriodic(history). The orchestrator finds its own last directorfeedback from the history for context 
+            and asks a "thinking" LLM for new writerfeedback and directorfeedback.
+            * The complete result, including the VN sequence and any generated orchestratorFeedback, is returned to main.js.
+            * main.js emits a generate-vn-turn-response back to renderer_vn.js.
+            * renderer_vn.js receives this data and performs two actions:
+            * It immediately calls applyVNResult() to display the visual novel sequence to the user for a fast UI response.
+            * It then makes a second, non-blocking call to save-message-chapter, passing the new story text and the orchestratorFeedback object (merged with any Turn 0 feedback) as the auxobj, 
+            which is then saved to the chapter file.
+       * Closing the Loop (Next Turn): When the next LLM call is made (Step 3), prompt_builder.js reads the chapter history, finds the recently saved writerfeedback, 
+       and injects it into the system prompt to guide the writer LLM, ensuring the director's feedback is acted upon.
+
+    4. Visual Novel Transformation & Feedback Loop:
+       * In the VN tab (handled by renderer_vn.js), the user sends a message, which first triggers a call to the main writing LLM 
+       (as described in step 3) to get the next block of story text.
+       * Upon receiving the LLM's story text, renderer_vn.js emits a transform-to-vn-project event to main.js.
+       * main.js receives the event, and its first action is to call chaptermanagement.getChapters() to load the entire story history ({ chapters, properties }).
+       * main.js then calls vnmanager/vnmanager_simple.js:transformVNProject(), passing it the new story text and the full history.
+       * transformVNProject() orchestrates a parallel pipeline using Promise.all:
+            * VN Asset Pipeline: The standard creative tasks run:
+            * Calls vnmanager/utils/dialogue_processor.js:processDialogueLines() to format the text and trigger TTS.
+            * Calls vnmanager/utils/emotion_classifier.js:batchClassifyEmotions() to determine character emotions.
+            * Calls vnmanager/utils/asset_selector.js:selectBestBackground() and selectBestOST() to choose assets.
+            * Calls vnmanager/utils/sprite_finder.js:findSprite() to select character sprite images.
+            * Calls vnmanager/utils/sprite_positioner.js:computeSpritePositions() to arrange characters on screen.
+            * Calls vnmanager/vnmanager_simple.js:generatePlayerChoices() to create interactive choices.
+       * Orchestration Pipeline: In parallel with the asset pipeline, it checks if the orchestrator should run (currently every chapter, as per `VN_MANAGER_CONFIG.ORCHESTRATOR_INTERVAL`).
+            * If so, it calls orchestrator.runPeriodic(history). The orchestrator finds its own last directorfeedback from the history for context 
+            and asks a "thinking" LLM for new writerfeedback and directorfeedback.
+            * The complete result, including the VN sequence and any generated orchestratorFeedback, is returned to main.js.
+            * main.js emits a transform-to-vn-project-response back to renderer_vn.js.
+            * renderer_vn.js receives this data and performs two actions:
+            * It immediately calls applyVNResult() to display the visual novel sequence to the user for a fast UI response.
+            * It then makes a second, non-blocking call to save-message-chapter, passing the new story text and the orchestratorFeedback object as the auxobj, 
+            which is then saved to the chapter file.
+       * Closing the Loop (Next Turn): When the next LLM call is made (Step 3), prompt_builder.js reads the chapter history, finds the recently saved writerfeedback, 
+       and injects it into the system prompt to guide the writer LLM, ensuring the director's feedback is acted upon.
+
+  This system is designed to allow users to interact with an LLM, provide it with contextual information
+  from their files (potentially an Obsidian vault), and then transform the LLM's narrative output into an
+  interactive visual novel experience. The RAG system ensures the LLM has relevant context, and the VN
+  engine automates the creative process of turning text into a visual story.
+
+5. Memory Inspection Workflow:
+   * User navigates to the "Memory Inspector" tab in the main application window.
+   * This loads a separate webview containing `inspector.html` and its script, `renderer_memory.js`.
+   * The user selects a data type (e.g., "Chapter Chunks") and clicks "Refresh Data".
+   * `renderer_memory.js` emits a `get-memory-data` event to `main.js`.
+   * `main.js` receives the event and calls the corresponding handler, which in turn calls `memorymanagement.inspectStore(projectName, storeType)`.
+   * The `inspectStore` function directly queries the ChromaDB vector store for all documents and their associated metadata within the specified collection.
+   * `main.js` sends this complete dataset back to `renderer_memory.js` via a `get-memory-data-response` event.
+   * The inspector UI receives the data and dynamically renders it, allowing the user to see exactly what has been chunked, embedded, and stored in the RAG system.
+
+6. Log Viewer Workflow:
+   * User navigates to the "Log Viewer" tab in the main application window.
+   * This loads a separate webview containing `logs.html` and its script, `renderer_logs.js`.
+   * `renderer_logs.js` emits a `get-logs` event to `main.js`.
+   * `main.js` receives the event and reads the log files from the `logs/` directory.
+   * `main.js` sends the log data back to `renderer_logs.js` via a `get-logs-response` event.
+   * The log viewer UI receives the data and displays it.
+
+7. World Builder Workflow:
+   * User navigates to the "World Builder" tab in the main application window.
+   * This loads a separate webview containing `world_builder.html` and its script, `renderer_world.js`.
+   * The user interacts with the UI to build and manage world data.
+   * `renderer_world.js` communicates with `main.js` to save and load world data as needed.
+   * `main.js` handles the persistence of world data, likely in a structured format (e.g., JSON files).

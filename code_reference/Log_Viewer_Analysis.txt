@@ -1,0 +1,37 @@
+Log Viewer Analysis:
+
+This document outlines the functionality and implementation details of the Log Viewer component.
+
+Purpose:
+The Log Viewer provides a user interface to display application logs, aiding in debugging, monitoring, and cost analysis of LLM interactions.
+
+Files Involved:
+- `views/log_viewer/logs.html`: The HTML structure for the log viewer UI.
+- `views/log_viewer/renderer_logs.js`: The renderer process script responsible for fetching, processing, and displaying logs, including cost calculations.
+- `views/log_viewer/style.css`: Styling for the log viewer UI, including new themes and cost visualization.
+- `main.js`: Handles the backend logic for reading log files and sending them to the renderer process, as well as providing model pricing information.
+
+Workflow:
+1.  User navigates to the "Log Viewer" tab in the main application window.
+2.  `main.js` loads `logs.html` into a new webview.
+3.  `renderer_logs.js` (loaded by `logs.html`) initializes the UI and establishes a Socket.IO connection to `main.js`.
+4.  Upon connection, `renderer_logs.js` requests the current project name and model pricing from `main.js`.
+5.  `renderer_logs.js` emits a `get-all-logs` event to `main.js` for the current project.
+6.  `main.js` receives the `get-all-logs` event, reads the log files from the `logs/` directory (e.g., `messages_*.json`, `orchestrator_*.json`).
+7.  `main.js` processes the log data (e.g., parsing JSON, formatting for display) and sends it back to `renderer_logs.js` via a `get-all-logs-response` event.
+8.  `renderer_logs.js` receives the log data and dynamically updates the `logs.html` to:
+    *   Display a list of log files.
+    *   When a log file header is clicked, it requests the content of that specific log file via `get-log-content`.
+    *   Upon receiving log content, it calculates estimated LLM costs (input/output tokens, duration) based on the provided model pricing.
+    *   It renders a hierarchical cost bar chart and detailed tables breaking down costs by model and by topic.
+    *   It displays individual log entries (requests and responses) in an expandable format.
+9.  The system also supports real-time updates: `main.js` can emit a `project-changed` event if the active project changes, or `new-log-available` if new log entries are written, prompting `renderer_logs.js` to refresh the display.
+
+Key Features:
+-   **Dynamic Log Loading:** Loads logs for the currently active project.
+-   **Expandable Log Files:** Users can click on log file headers to expand/collapse their contents.
+-   **Detailed Log Entries:** Displays individual LLM requests and responses, including timestamps and payloads.
+-   **LLM Cost Analysis:** Estimates and visualizes LLM token usage and costs per model and per topic.
+-   **Performance Metrics:** Calculates and displays the duration of LLM interactions.
+-   **Real-time Updates:** Automatically refreshes logs when the project changes or new logs are available.
+-   **Themed UI:** Incorporates custom fonts and a Genshin-themed aesthetic with improved scrollbars and visual elements.

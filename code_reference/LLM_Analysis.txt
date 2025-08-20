@@ -1,0 +1,9 @@
+From my analysis, for the auxiliary LLMs, with about 3k context (one chapter with ~1200 words), if I task llama 70b with this (which it is very capable) it comes at about 0.0002$ per turn, which is negligible.
+
+Here are the models I'm using:
+deepseek-r1 -> slowest and most expensive - thinking model -> for the orchestrator
+deepseek-v3 -> fast and good at writing + has decent knowledge (670B parameters) - high end model -> for writing and harder tasks, like the step that turns the narrative into VN consumeable script
+llama 70b -> fast and super cheap + it's good at simple tasks (70B parameters) - medium end model -> for stuff like emote classification, ost background image choice
+some 8B -> super fast, ridiculously cheap - low end model -> haven't found it reliable enough for anything yet
+
+The turn comes up to about 1m processing, which I think is very respectable, considering the VN like high quality narrative with automatic sprites, voice over and consistancy. The experience results in a scene that if calmly read can extend towards a minute, so half Reading, half Processing.

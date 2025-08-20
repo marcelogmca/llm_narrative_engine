@@ -1,0 +1,154 @@
+  2. main.js (Electron Main Process)
+
+
+   * Purpose: This is the core Electron main process. It sets up the Electron window, initializes a Socket.IO
+     server for inter-process communication (IPC) with renderer processes, and orchestrates interactions
+     between various backend modules (obsidianmode, vnmanager, chaptermanagement, narrativeEngine). It acts as the central hub
+     for application logic not directly tied to the UI. It also supports a Command-Line Interface (CLI) mode for headless operation.
+   * Main Functions:
+       * parseArgs(): Parses command-line arguments to determine if running in CLI mode and extract relevant parameters.
+       * getProjectName(): Derives project name from rootDirectory.
+       * getProjectFiles(subdir, extensions): Helper to get project-specific assets (sprites, backgrounds, OSTs).
+       * getProjectSprites(), getProjectBackgrounds(), getProjectOSTs(): Specific helpers for retrieving project assets.
+       * addEmitReceiveToSocket(socket): Extends Socket.IO sockets for request-response patterns with timeout and cleanup.
+       * emitResponse(eventName, data): Helper for consistent Socket.IO responses.
+       * directoryHandlers (object): Contains async functions for directory operations (selectDirectory, refreshDirectory, getRootDirectory).
+       * characterHandlers (object): Contains async functions for character-related operations (resolveMainCharacterName, getMainCharacterName).
+       * fileHandlers (object): Contains async functions for file-related operations, including `sendToLLM` (now using `narrativeEngine`).
+       * vnHandlers (object): Contains async functions for Visual Novel operations, including `generateVNTurn` which orchestrates the VN pipeline.
+       * chapterHandlers (object): Contains async functions for chapter management (saveMessageChapter).
+       * memoryHandlers (object): Contains async functions for memory inspection operations (getMemoryData) requested by the memory inspector renderer.
+       * logHandlers (object): Contains async functions for log file operations (getAllLogs, getLogContent, getLogProjects, getCurrentProjectName).
+       * setupSocketConnection(socket): Configures event listeners for a new Socket.IO client connection.
+       * initializeNarrativeEngine(): Initializes the `narrativeEngine` module, injecting necessary dependencies.
+       * startSocketServer(): Starts the Socket.IO server.
+       * initializeElectronWindow(): Creates and manages the Electron browser window (GUI mode).
+       * runCliMode(args): Executes the application in CLI mode, simulating renderer interactions and calling core handlers directly.
+   * Modularity: Good. It delegates specific tasks to imported modules (obsidianmode, vnmanager, chaptermanagement, narrativeEngine, utils) and organizes event handlers by domain.
+   * Dependencies: electron, path, fs/promises, http, socket.io (for server), obsidianmode.js, vnmanager/vnmanager_simple.js, chaptermanagement.js, narrativeEngine.js, utils.js, views/obsidian_mode/renderer_obsidian_mode.js.
+   * Flow Analysis:
+       1. Startup: Application starts, `parseArgs()` determines mode. `startSocketServer()` and `initializeNarrativeEngine()` always run.
+           * **GUI Mode:** `app.whenReady()` -> `initializeElectronWindow()` (loads index.html). Various renderer processes (e.g., `renderer.js`, `renderer_vn.js`, `renderer_obsidian_mode.js`) connect to Socket.IO.
+           * **CLI Mode:** `app.whenReady()` -> `runCliMode(cliArgs)`. This function simulates renderer interactions to drive the core logic.
+       2. Socket.IO Server: `startSocketServer()` sets up the server, listening for client connections.
+       3. Client Connection (GUI Mode): When a renderer connects (from the main UI, VN viewer, memory inspector, or Obsidian Mode), setupSocketConnection() registers handlers for various events.
+       4. Socket Flow (GUI Mode): Renderer processes (e.g., `renderer.js`, `renderer_vn.js`) emit events to `main.js`. `main.js` then
+          calls appropriate handler functions, which often interact with other backend modules (e.g.,
+          `narrativeEngine.generateNextChapter`, `vnmanager.transformVNProject`). Results are sent back to the renderer via
+          Socket.IO responses.
+       5. CLI Flow: `runCliMode` directly calls `vnHandlers.generateVNTurn` (or other relevant handlers) with a simulated socket object, bypassing the GUI.
+       6. File System/LLM Interaction: `main.js` acts as a proxy, receiving requests from renderers (or simulating them in CLI mode),
+          performing file system operations (via `fs` or `obsidianmode`), making LLM calls (via `narrativeEngine` which uses
+          `utils.openrouterRequest`), and managing project-specific assets.
+       7. VN Turn Generation (`generateVNTurn`):
+           * Gathers context (selected files, main character, chat file path) from renderer (or simulated in CLI).
+           * Calls `narrativeEngine.generateNextChapter` to get the core story text and any Turn 0 orchestrator feedback.
+           * Calls `vnmanager.transformVNProject` to convert the story text into a VN sequence, passing project assets and chapter history.
+           * Merges Turn 0 orchestrator feedback with periodic orchestrator feedback (if any) from `vnResult`.
+           * Saves the complete turn (prompt + story text + VN sequence + orchestrator feedback) to the chapter file via `chaptermanagement.appendMessage`.
+           * Emits the final VN result to the renderer (or logs in CLI mode).
+
+       8. Memory Inspection Flow (renderer_memory.js):
+           * The Memory Inspector tab loads `inspector.html`, which runs `renderer_memory.js`.
+           * User clicks "Refresh Data" in the inspector UI.
+           * `renderer_memory.js` emits a `get-memory-data` event to `main.js`, specifying which data store to inspect (e.g., 'chapters').
+           * `main.js`'s `memoryHandlers.getMemoryData` function is triggered.
+           * It calls `memorymanagement.inspectStore` to query the ChromaDB vector store for all its contents.
+           * The raw data (documents, metadata, IDs) is sent back to `renderer_memory.js` via a `get-memory-data-response` event.
+           * `renderer_memory.js` receives the data and dynamically renders it into a grid for user inspection.
+
+       9. Log Viewer Workflow (renderer_logs.js):
+           * User navigates to the "Log Viewer" tab in the main application window.
+           * This loads a separate webview containing `logs.html` and its script, `renderer_logs.js`.
+           * `renderer_logs.js` emits a `get-logs` event to `main.js`.
+           * `main.js` receives the event and calls `logHandlers.getAllLogs` to read the log files from the `logs/` directory.
+           * `main.js` sends the log data back to `renderer_logs.js` via a `get-all-logs-response` event.
+           * The log viewer UI receives the data and displays it.
+           * When a user requests content of a specific log file, `renderer_logs.js` emits `get-log-content` and `main.js`'s `logHandlers.getLogContent` reads and returns the file content.
+
+  3. renderer.js (Main UI Renderer Process)
+
+
+   * Purpose: This script runs in the main Electron renderer process (associated with index.html). It manages
+     the user interface for displaying the main application window, including tab switching for different views
+     (e.g., VN Viewer, Log Viewer, Memory Inspector, World Builder, Obsidian Mode). It communicates with the
+     main.js process via Socket.IO.
+   * Main Functions:
+       * initializeTabs(): Sets up tab switching functionality for the main application window.
+       * ensureRootDirectoryIsSet(): Initiates the process of selecting or confirming the project's root directory, communicating with `main.js` via Socket.IO.
+   * Modularity: Good. Focuses on core UI management and initial setup, delegating specific view functionalities to their respective renderer scripts (e.g., VN Viewer, Obsidian Mode).
+   * Dependencies: socket.io-client. Communicates with main.js.
+   * Flow Analysis:
+       1. Initialization: On `DOMContentLoaded`, `initializeTabs()` sets up the tab system, and `ensureRootDirectoryIsSet()` prompts the user to select a project directory.
+       2. Directory Selection: `ensureRootDirectoryIsSet()` emits a `select-directory` event to `main.js`. Upon receiving a `select-directory-response`, it reloads the Obsidian webview if a directory was successfully selected.
+       3. Tab Switching: User interaction with tab buttons triggers `initializeTabs()` to switch between different views, which are typically loaded into webviews or iframes.
+       4. IPC: `renderer.js` communicates with `main.js` via Socket.IO for directory selection and other core operations.
+
+
+  4. renderer_vn.js (Visual Novel Viewer Renderer Process)
+
+
+   * Purpose: This script runs in a separate Electron renderer process (likely within an iframe or webview in
+     index.html, or a separate window). It handles the UI and logic for displaying the visual novel, including
+     character sprites, dialogue, backgrounds, music, and player choices. It communicates with the main.js
+     process to trigger VN transformations and save chat history.
+   * Main Functions:
+       * debugLog(), debugError(): Local debugging utilities.
+       * socket.emitReceive(): Custom Socket.IO method for request-response.
+       * processMessage(message): Sends the user's prompt to the backend (`main.js`) via the `generate-vn-turn` event and handles the response, including showing a progress bar.
+       * applyVNResult(result): Applies the received VN data (sequence, background, song, player choices) to the UI, updating sprites, background, and audio. It also handles the parsing of player choices.
+       * showMessage(index): Displays a single command from the VN sequence, handling character names, dialogue text, and typewriter effect. It also triggers `playVoice` and `updateSprites`.
+       * checkCompletion(index): Checks if the current message is the last in the sequence and displays player choices or normal input accordingly. Manages autoplay.
+       * showChoiceButtons(choices): Displays interactive buttons for player choices.
+       * updateSprites(sprites): Updates the character sprites displayed on screen.
+       * addToLog(character, displayName, text): Adds the current dialogue/narration to a scrollable log.
+       * playAudio(audioSrc): Plays background music.
+       * playVoice(text): Plays character voice audio (if available) based on CRC of the text.
+       * handleSendMessage(): Event handler for sending user messages.
+       * handleRetryMessage(): Event handler for retrying messages (same as sending).
+       * handleChoiceSelection(choiceObject): Processes a player's choice, generating a new prompt based on the outcome.
+       * showNormalInput(): Hides choice buttons and shows the regular user input field.
+       * showNextMessage(): Advances to the next message in the VN sequence.
+       * showPrevMessage(): Goes back to the previous message in the VN sequence.
+       * toggleAutoPlay(): Toggles autoplay mode and updates the UI button.
+       * startProgressBar(duration): Manages the visual progress bar for autoplay.
+   * Modularity: Good separation of concerns between UI display, user input handling, and communication with
+     the main process.
+   * Dependencies: socket.io-client. It uses internal utility functions `crc32_str` and `sanitizeForCrc` for voice playback.
+   * Flow Analysis:
+       1. Initialization: `initializeVNRenderer()` runs on `DOMContentLoaded`, caching DOM elements and setting up event listeners for user interactions and socket events.
+       2. User Input: User types a message and clicks "Send" (or "Retry").
+       3. Message Processing: `handleSendMessage()` (or `handleRetryMessage()`) calls `processMessage()`.
+       4. Backend Interaction: `processMessage()` emits a `generate-vn-turn` event to `main.js` with the user's prompt. It displays a progress bar during this process.
+       5. VN Display: Upon receiving the `generate-vn-turn-response` from `main.js`, `applyVNResult()` updates the UI with the new VN sequence, background, song, and player choices. `showMessage()` then starts displaying the sequence with a typewriter effect.
+       6. Player Choices: If `playerChoices` are present at the end of a sequence, `showChoiceButtons()` displays them. `handleChoiceSelection()` processes the chosen option as a new message.
+       7. Progress Reporting: Listens for `vn-transform-progress` events from `main.js` to update the visual progress bar and status text.
+
+  5. modules/utils.js (Shared Utilities)
+
+
+   * Purpose: Provides a collection of common utility functions used across various modules in the project.
+     This includes logging, file system operations, string manipulation, hashing, API requests (specifically
+     OpenRouter and Gemini), and progress reporting.
+   * Main Functions:
+       * loadSettings(), readSettings(): Manages application settings from settings.json.
+       * Logger (object with log, error): A custom logging utility.
+       * readFileSync(relPath): Reads a file synchronously from the project root.
+       * ensureDirectoryExists(dirPath): Creates directories if they don't exist (async).
+       * ensureDirectoryExistsSync(dirPath): Synchronously creates directories if they don't exist.
+       * listFilesRecursive(dir, validExtensions): Recursively lists files in a directory with specific extensions.
+       * appendToFile(filePath, content): Appends content to a file.
+       * replaceAll(str, search, replacement): Replaces all occurrences of a substring in a string.
+       * generateHash(content, algorithm): Generates a hash for the given content.
+       * normalizeText(text): Normalizes text for comparison (lowercase, replaces spaces with underscores).
+       * getFilename(filepath): Extracts the filename from a full path.
+       * openrouterRequest({ messages, model, extra }): Makes a request to the OpenRouter API.
+       * transformMessagesForGemini(messages): Transforms messages from OpenAI format to Gemini format, handling system instructions separately.
+       * requestGeminiWithFallback({ messages, fallbackModel, extra }): Makes a request to a primary model (Gemini) and falls back to a secondary model on OpenRouter if the primary call fails.
+       * reportProgress(socket, { step, totalSteps, status, startTime }): Reports progress via a socket.
+       * naturalSort(a, b): Natural sort comparison function for file/folder names.
+   * Modularity: Excellent. It's a pure utility module with no external dependencies beyond Node.js built-ins
+     and axios. It's designed to be imported and used by other modules without creating circular dependencies.
+   * Dependencies: fs/promises, fs, path, crypto, axios.
+   * Flow Analysis: Provides foundational services. For example, `openrouterRequest` and `requestGeminiWithFallback` are crucial for all LLM
+     interactions, `Logger` for debugging, and file system functions for data persistence.
