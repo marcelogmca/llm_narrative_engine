@@ -10,6 +10,13 @@ A brief demonstration of the Visual Novel runtime environment.
 
 A robust self-contained application for creating dynamic long-form narratives using AI. This engine combines a multi-agent AI system powered by a persistent, dynamic world-state that ensures long-term continuity, coherence, and linear character development while offering a seamless creative cycle workflow.
 
+This was created to get a deeper understanding of modern AI techniques and solve problems found on the most popular role playing systems.
+
+* SillyTavern: A fantastic tool with a lot of depth and capabilities, but it's also its weakness. It feels overwhelming and is too complex for the average user who just wants a plug & play experience.
+* RisuAI: Simple to use but lacks more advanced features.
+
+However what I found on every RP (role-playing) system is that they all share the same limitation: They strive to complete the user's narrative on mostly one LLM call. This is correct for the user experience to feel snappy and to save costs, but nowadays high end popular models have gotten very cheap, so it's now reasonable to have a multi-agent RP experience, where we give each LLM a specific task instead of relying on large monolithic API calls that result in subpar output due to LLM's instruction overflow and attention drift. Using a multi-agent setup ensures every part of the experience goes to it's fullest potential and the narrative retains supreme quality and consistency. 
+
 *A short demonstration of the Visual Novel run-time environment.*
 
 ## Core Vision
