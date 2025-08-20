@@ -76,6 +76,11 @@ The engine is a modular, event-driven architecture—designed for resiliency and
 | **TTS (External)** | Spark-TTS or Alltalk TTS |
 | **Diffusion (External)** | Webui1111 or ComfyUi |
 
+## Cost & Latency
+
+Using the right high-end models and providers results in up to 0.02$ per turn, which is on par with similar systems while delivering higher quality multi-agent functionality.
+A turn can take more time to process than similar systems due to the number of LLM calls but still rounds about 1/4 processing/experience ratio. (e.g. 40s of processing for 2~3m of reading)
+
 ## Visual Showcase
 
 | In-App Editor & File Management |
