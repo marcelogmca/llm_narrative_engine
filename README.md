@@ -70,8 +70,8 @@ The engine is a modular, event-driven architecture—designed for resiliency and
 | **AI/LLM** | OpenRouter API, Ollama (Embeddings) |
 | **Frontend** | HTML, CSS, JavaScript (Vanilla) |
 | **Libraries** | LangChain.js, Axios, Marked.js |
-| **TTS (External)** | Spark-TTS, Alltalk TTS |
-| **Diffusion (External)** | Webui1111, ComfyUi |
+| **TTS (External)** | Spark-TTS or Alltalk TTS |
+| **Diffusion (External)** | Webui1111 or ComfyUi |
 
 ## Visual Showcase
 
