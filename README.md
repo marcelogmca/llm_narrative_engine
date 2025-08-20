@@ -75,14 +75,14 @@ The engine is a modular, event-driven architecture—designed for resiliency and
 
 | In-App Editor & File Management |
 | :---: |
-| ![Editor Screenshot](lore_management.png) |
+| ![Editor Screenshot](./images/lore_management.png) |
 
 | Visual Story Player |
 | :---: |
-| ![Editor Screenshot](vn_viewer.png) |
+| ![Editor Screenshot](./images/vn_viewer.png) |
 
 | Performance & Cost Dashboard |
-| :---: | :---: |
+| :---: |
 | ![Dashboard Screenshot](./images/logs_cost.png) |
 
 ---
