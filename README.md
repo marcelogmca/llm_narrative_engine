@@ -32,9 +32,9 @@ This project aims to address the fundamental limitations of other AI storytellin
 
 *   **The "Director" AI:** A 'Director' agent (Orchestrator) reviews the narrative events periodically. It offers high-level feedback and guidance to direct an overarching main 'Writer' AI to mitigate plot drift and maintain thematic representation longitudinally. Keeps an internal notebook in a self-feedback loop to keep track of the narrative's goals, keeping the writer reality anchored and naturally reminding it of key missing events.
 
-*   **Dynamic World-State:** The engine parses narrative text logs after each turn of events to extract and track key narrative facts (e.g., `RELATIONSHIPCHANGE: Laura, +5`, `INVENTORYCHANGE: Player, Sword +1`). The results create a persistent "world brain," extracting the final systems process as the 'ground truth' story-state.
+*   **Dynamic World-State:** The engine parses narrative text logs after each turn of events to extract and track key narrative facts (e.g., `RELATIONSHIPCHANGE: Tivo, Player, +5`, `INVENTORYCHANGE: Player, Pickaxe +1`). The results create a persistent "world brain," extracting the final systems process as the 'ground truth' story-state.
 
-*   **State-Sensitive Character Evolutions:** Character personality traits and locked numerical relationships track numerically based on in-story events as structured data. This data is then distilled or synthesized back into natural language rules (e.g., `[Laura is now more confident]`) and injected into the AI performance prompt for tracking over time.
+*   **State-Sensitive Character Evolutions:** Character personality traits and locked numerical relationships track numerically based on in-story events as structured data. This data is then distilled or synthesized back into natural language rules (e.g., `[Tivo is now more confident]`) and injected into the AI performance prompt for tracking over time.
 
 *   **Frictionless Asset Pipeline:** Simple drag-and-drop functionality for character sprites, background images, and music. The system selects the best assets based on file names indicated by the narrative context—no need for developers to edit lengthy, complex configuration files.
 
