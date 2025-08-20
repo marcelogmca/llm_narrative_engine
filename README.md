@@ -24,7 +24,7 @@ This project aims to address the fundamental limitations of other AI storytellin
 *   **Multi Character Support:** Supports multiple characters at once, they can enter and leave the scenes at will, appear on the screen simultaneously, interact and each have their own personalities, relationship tracking and goals.
 *   **Allow Ongoing Character Development:** Characters must change, and so too must their relationships, dynamically over recent previous events as the narrative evolves.
 *   **Empower the Creator:** All-in-one environment for world-building, writing, testing, and experiencing the final story.
-*   **Drag & Drop Asset Management:** No manual definition of every visual asset. Simply drop "Forest.png", "Desert.png" to the project's background folder or "Tivo_happy.png", "Tivo_sad.png" for automatic asset usage.
+*   **Drag & Drop Asset Management:** No manual definition of every visual asset. Simply drop "Forest.png", "Desert.png" to the project's background folder, "Serene.mp3", "Windy.mp3" to the music folder or "Tivo_happy.png", "Tivo_sad.png" for automatic asset usage.
 
 ## Key Features
 
