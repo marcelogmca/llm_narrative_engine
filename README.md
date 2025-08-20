@@ -91,4 +91,4 @@ The engine is a modular, event-driven architecture—designed for resiliency and
 
 ## Regarding Source Code
 
-This is an ambitious, ongoing hobby project, hence the source code is not available right now. This repository serves as a detailed architectural showcase of the design and potential. I am happy to discuss more implementation details and design decisions.
+This is an ambitious, ongoing hobby project, hence the source code is not available right now. This repository serves as a detailed architectural showcase of the design and potential.
