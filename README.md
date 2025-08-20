@@ -44,7 +44,7 @@ This project aims to address the fundamental limitations of other AI storytellin
 
 The engine is a modular, event-driven architecture—designed for resiliency and extensibility. The backend processes are managed in Node.js and communicate with the Electron frontend via Socket.IO multi-webview.
 
-![Architecture Overview](placeholder_architecture_diagram.png)
+![Architecture Overview](./images/Architecture.png)
 
 *   **Core Application:** The UI is managed by an Electron shell. The main process is Node.js. All inter-process communications are handled as real-time events using Socket.IO.
 
@@ -77,7 +77,7 @@ The engine is a modular, event-driven architecture—designed for resiliency and
 
 | Performance & Cost Dashboard | Memory & Log Inspector |
 | :---: | :---: |
-| ![Dashboard Screenshot](placeholder_dashboard.png) | ![Inspector Screenshot](placeholder_inspector.png) |
+| ![Dashboard Screenshot](./images/logs_cost.png) |
 
 ---
 
