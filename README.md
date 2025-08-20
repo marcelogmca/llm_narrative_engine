@@ -43,6 +43,8 @@ This engine features a ground-up architecture with the design goals to:
 
 *   **Built-in Diagnostics & Performance Monitoring:** A real-time diagnostic interface provides creators with a detailed description of each turn, including processing time and estimated token cost for each AI agent and process—enabling fine-tuning and optimization.
 
+*   **High Modularity and Configuration:** The user can choose which modules are active, their LLM models, their third party accounts, debug level, etc.
+
 ## Architectural Overview
 
 The engine is a modular, event-driven architecture—designed for resiliency and extensibility. The backend processes are managed in Node.js and communicate with the Electron frontend via Socket.IO multi-webview.
@@ -88,6 +90,12 @@ The engine is a modular, event-driven architecture—designed for resiliency and
 | :---: |
 | ![Dashboard Screenshot](./images/logs_cost.png) |
 
+## Implementation Ideas & Optimizations
+* Allow a user defined number of auto API connection tries instead of defaulting to "simple mode" (E.g. If "emotion" detector model fails, currently it defaults to choosing a neutral sprite instead of crashing the system) 
+* Allow the user to view and edit the World State / Fact Manager. All LLMs no matter how sophisticated can make mistakes, and the user should be able to change any parameter of the narrative.
+* A view for previous scenes, allowing the user to replay events from the past and even see them on an intuitive time line.
+* Allow exporting the story into a standalone visual novel player. If the user has concluded his story and wishes to export it for future replayability or to share with someone else.
+* More ambitious: Create a living world that happens beyond the screen. Placing the user on a concrete position within a world map and having events and characters interacting in the background shaping the entire adventure indirectly.
 ---
 
 ## Regarding Source Code
