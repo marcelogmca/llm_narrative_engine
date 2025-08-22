@@ -98,6 +98,8 @@ A turn can take more time to process than similar systems due to the number of L
 ## Implementation Ideas & Optimizations
 * Allow a user defined number of auto API connection tries instead of defaulting to "simple mode" (E.g. If "emotion" detector model fails, currently it defaults to choosing a neutral sprite instead of crashing the system) 
 * Allow the user to view and edit the World State / Fact Manager. All LLMs no matter how sophisticated can make mistakes, and the user should be able to change any parameter of the narrative.
+* Sprite animations or even live2d integration.
+* Ambient animations such as light rays, snow, wind or rain.
 * A view for previous scenes, allowing the user to replay events from the past and even see them on an intuitive time line.
 * Allow exporting the story into a standalone visual novel player. If the user has concluded his story and wishes to export it for future replayability or to share with someone else.
 * More ambitious: Create a living world that happens beyond the screen. Placing the user on a concrete position within a world map and having events and characters interacting in the background shaping the entire adventure indirectly.
