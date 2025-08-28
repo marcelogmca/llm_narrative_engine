@@ -70,7 +70,7 @@ The engine is a modular, event-driven architecture—designed for resiliency and
 | :--- | :--- |
 | **Core Backend** | Node.js, Electron.js, Socket.IO |
 | **Databases** | ChromaDB (Vector Store), SQLite (Fact Store) |
-| **AI/LLM** | OpenRouter API, Ollama (Embeddings) |
+| **AI/LLM** | LangChain, OpenRouter API, Ollama (Embeddings) |
 | **Frontend** | HTML, CSS, JavaScript (Vanilla) |
 | **Libraries** | LangChain.js, Axios, Marked.js |
 | **TTS (External)** | Spark-TTS or Alltalk TTS |
