@@ -34,68 +34,93 @@ This document outlines the functionality and implementation details of the `modu
 *   **Purpose:** This JSON file serves as the central configuration hub for the entire application. It defines various parameters that control the behavior of different modules, including API keys, model selections, LLM parameters, and feature toggles. With the introduction of `modules/llm.js` and multi-provider support, `settings.json` now centralizes the configuration for various LLM services.
 *   **Key Sections and Their Purpose:**
     *   `debug`: Boolean. If `true`, enables verbose logging across the application.
-    *   `llm_providers`: An object configuring different LLM providers. Each key represents a provider name (e.g., `openrouter`, `gemini`, `ollama`).
-        *   Each provider object contains its specific configuration, such as `url`, `apiKey`, and any provider-specific parameters.
-        *   `openrouter`: Configuration for the OpenRouter API.
-            *   `url`: The endpoint for OpenRouter API.
-            *   `apiKey`: Your OpenRouter API key.
-        *   `gemini`: Configuration for the Google Gemini API.
-            *   `baseUrl`: The base URL for the Gemini API.
-            *   `apiKey`: Your Google AI Studio API key.
-        *   `ollama`: Configuration for the Ollama embeddings model. **If the Ollama server is not running, RAG and summarization features will gracefully degrade.**
-            *   `model`: The Ollama model to use for generating embeddings (e.g., `nomic-embed-text`).
-            *   `baseUrl`: The base URL for the Ollama server.
-    *   `llm_models`: An object defining the specific LLM models to be used for different tasks, mapping logical names (e.g., `thinkingmodel`, `highendmodel`) to actual provider and model IDs.
-        *   `thinkingmodel`, `highendmodel`, `mediumendmodel`, `lowendmodel`: Defines different LLM models available through configured providers for various tasks, categorized by their perceived "power" or cost. Each entry specifies the `provider` and `model` ID.
+    *   `sanitizeResponses`: Configuration for sanitizing LLM responses.
+        *   `enabled`: Boolean. If `true`, enables the regex-based response sanitizer.
+    *   `providers`: An object configuring different LLM providers and their associated models. Each key represents a provider name (e.g., `openrouter`, `openai`, `anthropic`, `deepseek`, `gemini`).
+        *   Each provider object contains its `apiKey`, `url` (if applicable), and defines logical model tiers (e.g., `thinkingmodel`, `highendmodel`, `mediumendmodel`, `lowendmodel`) that map to specific model IDs for that provider.
     *   `writer`: Configuration for the main narrative writing LLM.
-        *   `model`: Specifies which logical model (e.g., `highendmodel`) to use for writing.
-        *   `llm_params`: Parameters passed to the LLM for text generation (e.g., `frequency_penalty`, `presence_penalty`, `temperature`, `top_p`, `reasoning`).
+        *   `model`: Specifies which logical model tier (e.g., `highendmodel`) to use for writing.
+        *   `provider`: The LLM provider to use (e.g., `openrouter`).
+        *   `llm_params`: Parameters passed to the LLM for text generation (e.g., `temperature`, `max_tokens`, `extra.reasoning`).
+        *   `retries`: Number of retries for LLM calls.
+        *   `timeout`: Timeout for LLM calls in milliseconds.
+    *   `summarizer`: Configuration for summarization models.
+        *   `summary_model`: Logical model for general summaries.
+        *   `summary_provider`: Provider for general summaries.
+        *   `synopsis_model`: Logical model for generating synopses.
+        *   `synopsis_provider`: Provider for generating synopses.
+        *   `character_sheet_model`: Logical model for extracting character sheet information.
+        *   `character_sheet_provider`: Provider for extracting character sheet information.
     *   `orchestrator`: Configuration for the orchestrator module.
-        *   `model`: Specifies which logical model (e.g., `thinkingmodel`) to use for orchestrator tasks.
+        *   `model`: Specifies which logical model tier (e.g., `thinkingmodel`) to use for orchestrator tasks.
+        *   `provider`: The LLM provider to use.
         *   `llm_params`: Parameters for the orchestrator LLM.
         *   `chapters_to_review`: Number of recent chapters the orchestrator should review.
-    *   `chroma`: Configuration for the ChromaDB vector store. **If the ChromaDB server is not running, RAG and summarization features will gracefully degrade.**
-        *   `url`: The URL where the ChromaDB server is running.
+        *   `enabled`: Boolean to enable/disable the orchestrator.
+        *   `retries`: Number of retries for LLM calls.
+        *   `timeout`: Timeout for LLM calls in milliseconds.
+    *   `chroma`: Connection details for the ChromaDB vector database (for Retrieval Augmented Generation).
+        *   `url`: The URL where the ChromaDB server is running. **If the ChromaDB server is not running, RAG and summarization features will gracefully degrade.**
+    *   `ollama`: Connection to a local Ollama instance for generating text embeddings.
+        *   `model`: The Ollama model to use for generating embeddings (e.g., `nomic-embed-text`).
+        *   `provider`: The LLM provider for Ollama (e.g., `openrouter`).
+        *   `baseUrl`: The base URL for the Ollama server. **If the Ollama server is not running, RAG and summarization features will gracefully degrade.**
     *   `assetSelector`: Configuration for selecting visual novel assets (backgrounds, OSTs).
         *   `enableOST`, `enableBackground`: Booleans to enable/disable OST and background selection.
         *   `background_model`, `ost_model`: Logical models to use for LLM-based asset selection.
-        *   `background_params`, `ost_params`: LLM parameters for asset selection.
+        *   `background_provider`, `ost_provider`: Providers for asset selection.
+        *   `background_params`, `ost_params`: LLM parameters for asset selection, including `retries` and `timeout`.
     *   `enableTTS`: Boolean. If `true`, enables Text-to-Speech generation.
     *   `ttsApiEndpoint`: The endpoint for the external TTS API.
     *   `emotionClassifier`: Configuration for character emotion classification.
         *   `enabled`: Boolean to enable/disable emotion classification.
         *   `model`: Logical model to use for emotion classification.
-        *   `llm_params`: LLM parameters for emotion classification.
+        *   `provider`: The LLM provider to use.
+        *   `llm_params`: LLM parameters for emotion classification, including `retries` and `timeout`.
     *   `useUncensorifyPrompt`: Boolean. If `true`, uses an "uncensorify" prompt for dialogue transformation.
     *   `dialogue_processor`: Configuration for the dialogue processing module.
         *   `model`: Logical model to use for dialogue transformation.
-        *   `llm_params`: LLM parameters for dialogue transformation.
+        *   `provider`: The LLM provider to use.
+        *   `llm_params`: LLM parameters for dialogue transformation, including `retries` and `timeout`.
         *   `enabled`: Boolean to enable/disable dialogue processing.
+    *   `memoryRetriever`: Configuration for the LLM used for chunking and retrieving relevant memories from the vector database.
+        *   `model`: Logical model to use.
+        *   `provider`: The LLM provider to use.
+        *   `retries`: Number of retries for LLM calls.
+        *   `timeout`: Timeout for LLM calls in milliseconds.
+        *   `llm_params`: LLM parameters for memory retrieval.
+    *   `staticLore`: Configuration for static lore Retrieval Augmented Generation (RAG).
+        *   `top_k`: Number of top results to retrieve from files set as "Auto".
     *   `player_choice_generator`: Configuration for generating player choices.
         *   `model`: Logical model to use for player choice generation.
-        *   `llm_params`: LLM parameters for player choice generation.
+        *   `provider`: The LLM provider to use.
+        *   `llm_params`: LLM parameters for player choice generation, including `retries` and `timeout`.
         *   `enabled`: Boolean to enable/disable player choice generation.
-    *   `summarizer`: Configuration for summarization models.
-        *   `summary_model`: Logical model for general summaries.
-        *   `synopsis_model`: Logical model for generating synopses.
-        *   `character_sheet_model`: Logical model for extracting character sheet information.
     *   `fact_manager`: Configuration for the fact management system.
         *   `enabled`: Boolean to enable/disable the fact manager.
         *   `facts`: Configuration for fact extraction and management.
             *   `model`: Logical model for fact-related operations.
-            *   `llm_params`: LLM parameters for fact operations.
+            *   `provider`: The LLM provider to use.
+            *   `llm_params`: LLM parameters for fact operations, including `retries` and `timeout`.
             *   `enabled`: Boolean to enable/disable fact processing.
+        *   `world_state_synthesizer`: Configuration for synthesizing world state.
+            *   `model`: Logical model to use.
+            *   `provider`: The LLM provider to use.
+            *   `llm_params`: LLM parameters, including `retries` and `timeout`.
+            *   `enabled`: Boolean to enable/disable.
         *   `personality`: Configuration for personality vector extraction.
             *   `model`: Logical model for personality-related operations.
-            *   `llm_params`: LLM parameters for personality operations.
+            *   `provider`: The LLM provider to use.
+            *   `llm_params`: LLM parameters for personality operations, including `retries` and `timeout`.
             *   `enabled`: Boolean to enable/disable personality processing.
         *   `personality_vector_extractor`: Specific configuration for the personality vector extraction.
             *   `model`: Logical model for personality vector extraction.
-            *   `llm_params`: LLM parameters for personality vector extraction.
+            *   `provider`: The LLM provider to use.
+            *   `llm_params`: LLM parameters for personality vector extraction, including `retries` and `timeout`.
             *   `enabled`: Boolean to enable/disable personality vector extraction.
     *   `modelCosts`: Provides pricing information for various LLM models across different providers.
-        *   Each key represents a provider name (e.g., `openrouter`, `gemini`).
-        *   Under each provider, keys represent model names (e.g., `deepseek/deepseek-chat-v3-0324`).
+        *   Each key represents a provider name (e.g., `openrouter`, `openai`, `anthropic`, `deepseek`, `gemini`).
+        *   Under each provider, keys represent model names (e.g., `deepseek/deepseek-chat-v3.1`).
         *   `input`: Cost per 1M input tokens.
         *   `output`: Cost per 1M output tokens.
         *   `unit`: Unit of cost (e.g., "USD per 1M tokens").
