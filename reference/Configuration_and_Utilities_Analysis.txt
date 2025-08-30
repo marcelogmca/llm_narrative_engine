@@ -1,0 +1,104 @@
+Configuration and Utilities Analysis:
+
+This document outlines the functionality and implementation details of the `modules/utils.js` file and the `settings.json` configuration.
+
+### 5. modules/utils.js (Shared Utilities)
+
+*   **Purpose:** Provides a collection of common utility functions used across various modules in the project. This includes logging, file system operations, string manipulation, hashing, and progress reporting. It also handles the loading and exposure of application settings from `settings.json`. LLM-related API requests have been refactored into `modules/llm.js` for multi-provider support.
+*   **Main Functions:**
+    *   `loadSettings()`: Loads application settings from `settings.json` at startup.
+    *   `Logger` (object with `log`, `error`): A custom logging utility that respects the `debug` setting from `settings.json`.
+    *   `TurnLogger`: A module for managing turn-based log files, ensuring logs are written asynchronously and can be retrieved.
+        *   `startNewTurnLog(projectName)`: Initializes a new log file for a turn within a project-specific subdirectory (`logs/<projectName>/`).
+        *   `log(title, content)`: Queues a log entry for the current turn.
+        *   `getCurrentLogPath()`: Returns the path of the current log file.
+        *   `getLatestLogPath()`: Finds the path of the most recent log file.
+        *   `readLatestLog()`: Reads and parses the content of the most recent log file.
+    *   `readFileSync(relPath)`: Reads a file synchronously from the project root.
+    *   `ensureDirectoryExists(dirPath)`: Asynchronously creates directories if they don't exist.
+    *   `ensureDirectoryExistsSync(dirPath)`: Synchronously creates directories if they don't exist.
+    *   `listFilesRecursive(dir, validExtensions)`: Recursively lists files in a directory with specific extensions.
+    *   `appendToFile(filePath, content)`: Appends content to a file.
+    *   `replaceAll(str, search, replacement)`: Replaces all occurrences of a substring in a string.
+    *   `generateHash(content, algorithm)`: Generates a hash for the given content.
+    *   `normalizeText(text)`: Normalizes text for comparison (lowercase, replaces spaces with underscores).
+    *   `getFilename(filepath)`: Extracts the filename from a full path.
+    *   `reportProgress(socket, { step, totalSteps, status, startTime })`: Reports progress via a socket.
+    *   `naturalSort(a, b)`: Natural sort comparison function for file/folder names.
+*   **Modularity:** Excellent. It's a pure utility module with no external dependencies beyond Node.js built-ins and `axios`. It's designed to be imported and used by other modules without creating circular dependencies.
+*   **Dependencies:** `fs/promises`, `fs`, `path`, `crypto`, `axios`.
+*   **Flow Analysis:** Provides foundational services. `Logger` for debugging, and file system functions for data persistence. The `TurnLogger` is essential for debugging and understanding the flow of the application by logging turn-based data. LLM interactions are now handled by `modules/llm.js`.
+
+### settings.json (Application Configuration)
+
+*   **Purpose:** This JSON file serves as the central configuration hub for the entire application. It defines various parameters that control the behavior of different modules, including API keys, model selections, LLM parameters, and feature toggles. With the introduction of `modules/llm.js` and multi-provider support, `settings.json` now centralizes the configuration for various LLM services.
+*   **Key Sections and Their Purpose:**
+    *   `debug`: Boolean. If `true`, enables verbose logging across the application.
+    *   `llm_providers`: An object configuring different LLM providers. Each key represents a provider name (e.g., `openrouter`, `gemini`, `ollama`).
+        *   Each provider object contains its specific configuration, such as `url`, `apiKey`, and any provider-specific parameters.
+        *   `openrouter`: Configuration for the OpenRouter API.
+            *   `url`: The endpoint for OpenRouter API.
+            *   `apiKey`: Your OpenRouter API key.
+        *   `gemini`: Configuration for the Google Gemini API.
+            *   `baseUrl`: The base URL for the Gemini API.
+            *   `apiKey`: Your Google AI Studio API key.
+        *   `ollama`: Configuration for the Ollama embeddings model. **If the Ollama server is not running, RAG and summarization features will gracefully degrade.**
+            *   `model`: The Ollama model to use for generating embeddings (e.g., `nomic-embed-text`).
+            *   `baseUrl`: The base URL for the Ollama server.
+    *   `llm_models`: An object defining the specific LLM models to be used for different tasks, mapping logical names (e.g., `thinkingmodel`, `highendmodel`) to actual provider and model IDs.
+        *   `thinkingmodel`, `highendmodel`, `mediumendmodel`, `lowendmodel`: Defines different LLM models available through configured providers for various tasks, categorized by their perceived "power" or cost. Each entry specifies the `provider` and `model` ID.
+    *   `writer`: Configuration for the main narrative writing LLM.
+        *   `model`: Specifies which logical model (e.g., `highendmodel`) to use for writing.
+        *   `llm_params`: Parameters passed to the LLM for text generation (e.g., `frequency_penalty`, `presence_penalty`, `temperature`, `top_p`, `reasoning`).
+    *   `orchestrator`: Configuration for the orchestrator module.
+        *   `model`: Specifies which logical model (e.g., `thinkingmodel`) to use for orchestrator tasks.
+        *   `llm_params`: Parameters for the orchestrator LLM.
+        *   `chapters_to_review`: Number of recent chapters the orchestrator should review.
+    *   `chroma`: Configuration for the ChromaDB vector store. **If the ChromaDB server is not running, RAG and summarization features will gracefully degrade.**
+        *   `url`: The URL where the ChromaDB server is running.
+    *   `assetSelector`: Configuration for selecting visual novel assets (backgrounds, OSTs).
+        *   `enableOST`, `enableBackground`: Booleans to enable/disable OST and background selection.
+        *   `background_model`, `ost_model`: Logical models to use for LLM-based asset selection.
+        *   `background_params`, `ost_params`: LLM parameters for asset selection.
+    *   `enableTTS`: Boolean. If `true`, enables Text-to-Speech generation.
+    *   `ttsApiEndpoint`: The endpoint for the external TTS API.
+    *   `emotionClassifier`: Configuration for character emotion classification.
+        *   `enabled`: Boolean to enable/disable emotion classification.
+        *   `model`: Logical model to use for emotion classification.
+        *   `llm_params`: LLM parameters for emotion classification.
+    *   `useUncensorifyPrompt`: Boolean. If `true`, uses an "uncensorify" prompt for dialogue transformation.
+    *   `dialogue_processor`: Configuration for the dialogue processing module.
+        *   `model`: Logical model to use for dialogue transformation.
+        *   `llm_params`: LLM parameters for dialogue transformation.
+        *   `enabled`: Boolean to enable/disable dialogue processing.
+    *   `player_choice_generator`: Configuration for generating player choices.
+        *   `model`: Logical model to use for player choice generation.
+        *   `llm_params`: LLM parameters for player choice generation.
+        *   `enabled`: Boolean to enable/disable player choice generation.
+    *   `summarizer`: Configuration for summarization models.
+        *   `summary_model`: Logical model for general summaries.
+        *   `synopsis_model`: Logical model for generating synopses.
+        *   `character_sheet_model`: Logical model for extracting character sheet information.
+    *   `fact_manager`: Configuration for the fact management system.
+        *   `enabled`: Boolean to enable/disable the fact manager.
+        *   `facts`: Configuration for fact extraction and management.
+            *   `model`: Logical model for fact-related operations.
+            *   `llm_params`: LLM parameters for fact operations.
+            *   `enabled`: Boolean to enable/disable fact processing.
+        *   `personality`: Configuration for personality vector extraction.
+            *   `model`: Logical model for personality-related operations.
+            *   `llm_params`: LLM parameters for personality operations.
+            *   `enabled`: Boolean to enable/disable personality processing.
+        *   `personality_vector_extractor`: Specific configuration for the personality vector extraction.
+            *   `model`: Logical model for personality vector extraction.
+            *   `llm_params`: LLM parameters for personality vector extraction.
+            *   `enabled`: Boolean to enable/disable personality vector extraction.
+    *   `modelCosts`: Provides pricing information for various LLM models across different providers.
+        *   Each key represents a provider name (e.g., `openrouter`, `gemini`).
+        *   Under each provider, keys represent model names (e.g., `deepseek/deepseek-chat-v3-0324`).
+        *   `input`: Cost per 1M input tokens.
+        *   `output`: Cost per 1M output tokens.
+        *   `unit`: Unit of cost (e.g., "USD per 1M tokens").
+        *   `context`: Context window size of the model.
+*   **Impact on Application Behavior:** `settings.json` directly influences the application's behavior, from which LLM models are used for different tasks to whether TTS is enabled or how verbose the logging is. Changes to this file allow for easy customization and tuning of the application without modifying code.
+*   **Relationship with `modules/utils.js` and `modules/llm.js`:** The `modules/utils.js` file is responsible for loading these settings at application startup, making them accessible to other modules via the `settings` object. The `modules/llm.js` then uses these settings to initialize and manage LLM interactions with various providers.

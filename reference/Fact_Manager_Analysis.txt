@@ -1,0 +1,68 @@
+System Summary: World State and Character State Fact Management System
+
+1. High-Level Concept:
+   * The system is designed to convert unstructured narrative text from a story into a structured, queryable database of facts. The goal is to create a persistent and evolving "world state" or "story brain" that tracks key elements like character locations, relationships, inventory, and time. Additionally, it now tracks and synthesizes character personality traits.
+   * This system serves as the logical foundation for ensuring continuity, enabling dynamic character development, and providing programmatic access to character personas.
+
+2. Core Components:
+   * **Fact Extraction Engine (LLM-based Parser - World State):** This component uses a Large Language Model with a highly specific prompt. The LLM acts as a "Game State Analyst," parsing the text of each story scene and extracting meaningful changes to the world state. Its output is a strictly formatted JSON array of "state deltas."
+   * **Personality Extraction Engine (LLM-based Parser - Character State):** This component also uses an LLM to analyze character data (e.g., character sheets, persona text) and extract a predefined set of personality vectors (traits with numerical values). It has two modes: an initial extraction (which clears previous personality data for a character) and a general extraction (which adds new vectors without clearing, using a custom prompt).
+   * **The Fact Database (Persistent Memory):** Facts (both world state and character personality) are stored directly within the currently active chat history SQLite database (`.db` file). This leverages the existing chat database for persistent storage, using a single, unified `facts` table with a refined schema (`id`, `project_name`, `turn_number`, `source`, `target`, `predicate`, `fact_value`, `context`, `timestamp`) to accommodate all types of state changes and personality vectors. The `projectName` field is crucial for associating facts with the correct project, ensuring data isolation and proper retrieval within the chosen chat database.
+   * **The Synthesizer (Programmatic Logic):** This is the code layer that queries the Fact Database. It aggregates the raw "delta" facts into human-readable summaries (e.g., "Current relationship score between Laura and Gin is 50") for world state, and now also programmatically generates natural language summaries of character personalities based on their accumulated vectors. This personality synthesis does NOT use an LLM, ensuring consistency and speed.
+
+3. Workflow (Per Story Turn/Character Definition):
+   * **World State:**
+     * A new scene of story text is generated.
+     * This text is fed to the Fact Extraction Engine.
+     * The engine outputs a JSON array of state deltas based on a predefined ontology.
+     * The system parses this JSON and inserts the new facts into the active chat SQLite database, first deleting any existing facts for that specific chapter/scene.
+     * Before the next story turn begins, the Synthesizer queries the active chat database to generate up-to-date summaries of the current world state.
+     * These summaries are injected into the prompts of higher-level creative systems, like the "Orchestrator," to inform their decisions.
+   * **Character State (Personality):**
+     * When a character's data (e.g., character sheet) is available, it can be fed to the Personality Extraction Engine.
+     * The engine outputs a JSON array of personality vectors (predicate, subject, value).
+     * These vectors are stored in the active chat SQLite database. Initial extraction clears previous vectors for that character; general extraction adds to them.
+     * The Programmatic Synthesizer can then be called to generate a natural language summary of the character's current personality based on the sum of their personality vectors.
+
+4. The Ontology of Facts (The Predicate List):
+   * **World State Predicates (used by `extractAndStoreFacts`):
+     * `LOCATION_CHANGE`: A character moves to a new physical location.
+       * Format: `{"predicate": "LOCATION_CHANGE", "subject": "CharacterName", "object": "LocationName"}`
+     * `TIME_CHANGE`: The time of day or season changes.
+       * Format: `{"predicate": "TIME_CHANGE", "subject": "World", "object": "Morning|Day|Night"}`
+     * `INVENTORY_CHANGE`: A character gains or loses an item. The value represents the change in quantity.
+       * Format: `{"predicate": "INVENTORY_CHANGE", "subject": "CharacterName", "object": "ItemName", "value": +/- number}`
+     * `RELATIONSHIP_CHANGE`: The social relationship score between two characters changes. The value is strictly constrained to a small integer range (e.g., -3 to +3) to ensure balance.
+       * Format: `{"predicate": "RELATIONSHIP_CHANGE", "subject": "CharacterName", "object": "OtherCharacterName", "value": +/- number}`
+
+   * **Important Note on ProjectName:** The `extractAndStoreFacts` function includes a `projectName` parameter. Historically, if this parameter was not explicitly provided during a call, it would default to 'default'. A recent fix ensures that `projectName` is correctly passed from `vnmanager.js` during fact extraction, associating new facts with the currently active project. This resolves an issue where facts were incorrectly stored under a 'default' project name.
+
+   * **Character Personality Predicates (used by `extractAndStoreInitialPersonalityVectors` and `extractAndStorePersonalityVectors`):
+     * `Openness`
+     * `Conscientiousness`
+     * `Extraversion`
+     * `Agreeableness`
+     * `Neuroticism`
+     * `Lawful_Chaotic_Axis`
+     * `Good_Evil_Axis`
+     * `Survival`
+     * `Safety`
+     * `Belonging`
+     * `Esteem`
+     * `Growth`
+     * `Combat_Prowess`
+     * `Supernatural_Might`
+     * `Social_Influence`
+     * `Intellectual_Acuity`
+     * Each personality predicate is stored with a `value` ranging from -100 to +100, representing the degree to which the character exhibits that trait.
+
+5. Intended Application and Purpose:
+   * **Continuity Enforcement:** Programmatically track character locations and inventories to prevent plot holes.
+   * **Dynamic Character Relationships:** Move beyond static descriptions by tracking relationship scores that evolve based on in-story actions.
+   * **Dynamic Character Personalities:** Track and evolve character personality traits based on their actions and descriptions, providing a rich, data-driven persona.
+   * **Informing Creative Direction:** Provide the high-level "Orchestrator" AI with a factual summary of the world state and character personalities, allowing it to make more intelligent and context-aware decisions about plot, pacing, and character behavior.
+   * **Generating Narrative Opportunities:** The system can programmatically detect when a relationship score or personality trait crosses a certain threshold, flagging it as a potential plot point for the Orchestrator to act upon at an opportune moment.
+   * **Programmatic Persona Access:** Other modules can query the Fact Manager to get a synthesized, natural language description of a character's current personality without needing to re-process large texts or call an LLM.
+
+6. Configuration:
+   * The module's behavior (e.g., enabled/disabled status, LLM models, and parameters for fact extraction, personality extraction, and personality vector extraction) is configurable via `settings.json` under the `fact_manager` key.
