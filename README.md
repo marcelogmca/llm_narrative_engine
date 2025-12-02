@@ -119,6 +119,55 @@ A turn can take more time to process than similar systems due to the number of L
 | :---: |
 | ![Dashboard Screenshot](./images/logs_cost.png) |
 
+---
+
+## Example of a Full System Flow
+
+To illustrate how all the components work together, here is a step-by-step walkthrough of a single turn, from user input to final output.
+
+**1. Setup & Configuration (The Creator's Workflow)**
+-   The user first selects their project. In the "Obsidian" view, they see their project's file structure.
+-   Using the dropdown next to each file, they assign a "persona" or "mode" to their lore files. `my_characters.md` is set to `charsheet`, `world_history.md` is set to `summary`, and `important_rules.md` is set to `full`. This tells the engine how to process these files later.
+
+**2. User Action (The Spark)**
+-   In the Visual Novel viewer, the user is presented with a scene. They type their action, "I draw my sword and inspect the strange altar," and press "Go."
+
+**3. Kickoff & Triage (The Backend Awakens)**
+-   The `generate-vn-turn` event is sent to `main.js`. A new `TurnContext` object is created, which will act as a "capsule" carrying all data for this turn.
+-   The **Narrative Pacer** (`narrative_pacer.js`) is the first AI agent to act. It analyzes the user's prompt and the last few turns, determines this is a standard action, and sets the turn's mode to `COMPLEX` inside the `TurnContext`.
+
+**4. The Director's Review (Orchestration)**
+-   As a direct result of the `COMPLEX` decision from the Triage step, the **Orchestrator** (`orchestrator.js`) is now executed.
+-   It analyzes the story's history, character arcs, and the current world state to ensure long-term coherence.
+-   It generates a "Writer's Brief"—a set of high-level instructions and suggestions—and places it into the `TurnContext` for the next agent to use.
+
+**5. Prompt Assembly (The Great Gathering - *Now Highly Parallel*)**
+-   The **Prompt Builder** (`prompt_builder.js`) immediately calls the **Query Generator** utility, which makes a single LLM call to create 5-10 variations of the user's prompt ("I inspect the altar," "What is on the altar?", "A close look at the strange altar," etc.).
+-   With this array of queries, it launches a `Promise.all` to fetch all context **simultaneously**:
+    - It searches the static lore database for information related to "altars" or "rituals."
+    - It searches the history of past chapters for any previous encounters with similar altars.
+    - It generates KG insights about entities related to the last turn.
+    - It synthesizes a personality snapshot for any new characters who just entered the scene.
+-   Once all these parallel tasks complete, the Prompt Builder rapidly assembles the fetched data, the Director's brief, and the static files into the final, context-rich prompt.
+
+**6. Narrative Generation (The Creative Act)**
+-   The **Writer AI** (`narrativeengine.js`) receives the prompt and generates the story for the current turn, describing the character drawing their sword and what they see at the altar.
+
+**7. Parallel and Asynchronous Processing (The Transformation)**
+-   The moment the raw text is generated, the **VN Manager** (`vnmanager.js`) begins its work, splitting tasks to minimize latency:
+    -   **Blocking Parallel Tasks:** It simultaneously runs all processes required to immediately display the scene to the user. This includes structuring dialogue, selecting assets (backgrounds, OST), classifying emotions, generating player choices, and extracting facts critical for the world state. The system waits for all these to complete.
+    -   **Asynchronous Background Tasks:** As soon as the blocking tasks finish and the scene is sent to the user, the system triggers "fire-and-forget" background tasks. These now include requesting **Text-to-Speech (TTS) generation**—with a payload enriched by the character's guessed gender for accurate voice selection—alongside generating the turn's **summary** and **synopsis** and updating the story's **knowledge graph**. The UI notifies the user that these tasks are running and when they complete.
+
+**8. Final Assembly & Display (The Showtime)**
+-   Once the parallel tasks are complete, the `vnmanager` assembles the final scene:
+    -   It finds the correct sprite (`player_curious.png`).
+    -   The `sprite_positioner` arranges it on the screen using the "heat" system.
+    -   The final sequence of dialogue, sprites, background, music, and player choices is finalized.
+-   This final sequence is sent to the **VN Viewer** UI, and the user sees the scene they created, complete with visuals, music, and new choices.
+
+**9. Committing to Memory**
+-   The entire, fully-populated `TurnContext` object—containing the user's input, all the intermediate data from every agent, and the final VN sequence—is saved as a single, atomic record into the project's SQLite database. The turn is now a permanent part of the story's history.
+
 ## Implementation Ideas & Optimizations
 *   GUI to be able to smoothly see the world state and relationship status of the current scene. (Partially addressed by the Knowledge Graph Viewer and Fact Viewer, but a dedicated "live" view is still a great idea).
 *   Ambient animations such as light rays, snow, wind or rain.
