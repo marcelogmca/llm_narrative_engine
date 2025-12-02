@@ -117,12 +117,6 @@ A turn can take more time to process than similar systems due to the number of L
 | :---: |
 | ![Dashboard Screenshot](./images/logs_cost.png) |
 
-| Knowledge Graph Visualization |
-| :---: |
-| `
-
-` |
-
 ## Implementation Ideas & Optimizations
 *   GUI to be able to smoothly see the world state and relationship status of the current scene. (Partially addressed by the Knowledge Graph Viewer and Fact Viewer, but a dedicated "live" view is still a great idea).
 *   Ambient animations such as light rays, snow, wind or rain.
