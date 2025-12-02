@@ -86,6 +86,8 @@ The engine is a modular, event-driven architecture—designed for resiliency and
     *   **Semantic Memory (ChromaDB):** A vector memory that stores text embeddings for "auto" lore files and the full history of chapter files. It answers, *"What parts of the story are relevant right now?"*
     *   **Factual Memory (SQLite):** A relational memory that stores structured world state data. It answers, *"What is verifiably true in the world right now?"*
 
+*   **Knowledge Graph (Subject-Predicate-Object Triples):**  The system builds and maintains a dynamic Knowledge Graph from extracted facts, representing relationships as (Subject; Predicate; Object) triples (e.g., (Tivo; SON_OF; Sebastian), (Sword; LOCATED_IN; Cave)). This structured representation allows for robust querying and logical inference about the world state and character relationships.
+
 ## Technology Stack
 
 | Category | Technologies |
