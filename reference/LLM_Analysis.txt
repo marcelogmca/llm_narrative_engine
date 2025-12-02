@@ -1,8 +1,0 @@
-LLM Analysis:
-
-The application now leverages `modules/llm.js` for all Large Language Model (LLM) interactions, utilizing the Langchain library to provide multi-provider support. This allows for flexible integration with various LLM services (e.g., OpenRouter, Gemini, Ollama for embeddings) based on configuration. **The system is designed to gracefully handle cases where specific LLM providers or services, such as Ollama for embeddings, are unavailable, ensuring core functionality continues without crashing.**
-
-Model Selection and Tiers:
-The selection of specific LLM models for different tasks (e.g., orchestration, narrative writing, auxiliary tasks) is now dynamically configured via `settings.json`. Models are categorized into tiers (thinking, high-end, medium-end, low-end) based on their capabilities, cost, and speed, allowing the application to select the most appropriate model for a given task.
-
-The cost and processing time per turn are highly dependent on the chosen LLM providers and models, as configured in `settings.json`. The system aims to balance quality, speed, and cost by intelligently routing requests to suitable models. The overall processing time for a turn, including LLM interactions and other application logic, is designed to be efficient, contributing to a smooth user experience.
