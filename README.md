@@ -94,10 +94,6 @@ The engine is a modular, event-driven architecture—designed for resiliency and
 
 ## Example of a Full System Flow
 
-Here is an abstracted, cleaner version of the walkthrough. It removes the specific code references (`.js`, specific function names) while clarifying the logic behind the "Triage" system and maintaining the architectural flow.
-
-***
-
 ### System Lifecycle: A Turn Walkthrough
 
 To illustrate how the multi-agent architecture operates, here is a step-by-step walkthrough of a single turn, from user input to final persistent memory.
