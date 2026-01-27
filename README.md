@@ -12,7 +12,13 @@ This was created to get a deeper understanding of modern AI techniques and solve
 * **SillyTavern**: A fantastic tool with a lot of depth and capabilities, but it's also its weakness. It feels overwhelming and is too complex for the average user who just wants a plug & play experience.
 * **RisuAI**: Simple to use but lacks more advanced features.
 
-However, what I found on every RP (role-playing) system is that they all share the same limitations: very limited multi-character support, poor long-context/memory management, and a requirement for the user to do exhaustive "lore books." They strive to complete the user's narrative in a single LLM call. While this feels snappy, modern high-end models are cheap enough to allow for a multi-agent experience. We give each LLM a specific task instead of relying on large monolithic API calls that result in subpar output due to instruction overflow and attention drift. Using a multi-agent setup ensures every part of the experience goes to its fullest potential and the narrative retains supreme quality and consistency while giving life to multiple characters simultaneously.
+However, what I found on every RP (role-playing) system is that they all share the same limitations: very limited multi-character support, poor long-context/memory management, and a requirement for the user to do exhaustive configuration and setup. They strive to complete the user's narrative in a single LLM call. While this feels snappy, modern high-end models are cheap enough to allow for a multi-agent experience. We give each LLM a specific task instead of relying on large monolithic API calls that result in subpar output due to instruction overflow and attention drift. Using a multi-agent setup ensures every part of the experience goes to its fullest potential and the narrative retains supreme quality and consistency while giving life to multiple characters simultaneously at a fraction of the cost.
+
+# Powerful Agentic Workflow
+
+An end-to-end agentic pipeline designed for perfect narrative continuity.
+
+https://github.com/user-attachments/assets/900a9fec-3d7f-40d8-b0ea-7ac6fad60e7d
 
 ## Core Vision
 
@@ -44,8 +50,6 @@ The design goals are to:
 ## Architectural Overview
 
 The engine is a modular, event-driven architecture—designed for resiliency and extensibility. The backend processes are managed in Node.js and communicate with the Electron frontend via Socket.IO.
-
-https://github.com/user-attachments/assets/900a9fec-3d7f-40d8-b0ea-7ac6fad60e7d
 
 *   **Core Application:** The UI is managed by an Electron shell. The main process is Node.js. All inter-process communications are handled as real-time events using Socket.IO.
 *   **The TurnContext Capsule:** A central dependency-injection object encapsulates all data for a specific turn, streaming data between modules and ensuring a single source of truth for the narrative state.
@@ -89,6 +93,10 @@ https://github.com/user-attachments/assets/900a9fec-3d7f-40d8-b0ea-7ac6fad60e7d
 | Performance & Cost Dashboard |
 | :---: |
 | ![Dashboard Screenshot](./images/logs_cost.png) |
+
+| Plugin Support |
+| :---: |
+| ![Dashboard Screenshot](./images/plugin_manager.png) 
 
 ---
 
@@ -139,18 +147,6 @@ The Visual Novel Manager assembles the final scene. It utilizes a "heat-based" s
 
 **9. Committing to Memory**
 The fully populated **Context Capsule**—containing the user input, the Director's notes, the raw text, and the final scene metadata—is saved as an atomic record in the database. The turn is now a permanent, retrievable part of the story's history.
-
----
-
-## Implementation Ideas & Optimizations
-*   ~~**Dynamic Triage:** Allow the system to decide when to use "smart" models vs "fast" models based on narrative complexity.~~ (Completed via Narrative Pacer)
-*   ~~**Fact Management UI:** Allow the user to view and edit the World State / Fact Manager.~~ (Completed via Fact Viewer & SQLite Browser integration)
-*   ~~**Scene History:** A view for previous scenes, allowing the user to replay events from the past.~~ (Completed via Scene History Viewer)
-*   ~~**Chat Migration:** Move from Markdown files to SQLite for robust chat history management.~~ (Completed)
-*   **Refactor Chat RAG:** Optimize the historical synopsis validation to reduce overhead as the story grows longer.
-*   **Ambient Animations:** Add support for light rays, snow, wind, or rain overlays in the VN viewer.
-*   **Export to Standalone:** Allow exporting the story into a standalone visual novel player for sharing.
-*   **Living World Simulation:** Place the user on a concrete position within a world map and have events/characters interacting in the background (off-screen) to shape the adventure indirectly.
 
 ---
 
