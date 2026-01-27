@@ -45,7 +45,8 @@ The design goals are to:
 
 The engine is a modular, event-driven architecture—designed for resiliency and extensibility. The backend processes are managed in Node.js and communicate with the Electron frontend via Socket.IO.
 
-![alt text](./images/flow_preview.mp4)
+![alt text](https://raw.githubusercontent.com/marcelogmca/llm_narrative_engine/refs/heads/main/images/flow_preview.mp4)
+
 
 *   **Core Application:** The UI is managed by an Electron shell. The main process is Node.js. All inter-process communications are handled as real-time events using Socket.IO.
 *   **The TurnContext Capsule:** A central dependency-injection object encapsulates all data for a specific turn, streaming data between modules and ensuring a single source of truth for the narrative state.
