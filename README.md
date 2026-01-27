@@ -20,6 +20,8 @@ An end-to-end agentic pipeline designed for perfect narrative continuity.
 
 https://github.com/user-attachments/assets/900a9fec-3d7f-40d8-b0ea-7ac6fad60e7d
 
+*Purely an animated flow representation, not actual GUI. Many of the stages work invisibly in the background.*
+
 ## Core Vision
 
 This project aims to address the fundamental limitations of other AI storytelling systems. Rather than a story being a single continuous sequence of text (chat), this engine models it like a simulated world. The user can easily engage in a brand new story, or base it on their favorite fiction and be able to experience and interact with a "What if?" sequel.
