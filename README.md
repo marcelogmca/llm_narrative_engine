@@ -18,6 +18,9 @@ However, what I found on every RP (role-playing) system is that they all share t
 
 An end-to-end agentic pipeline designed for perfect narrative continuity.
 
+*This is a rough AI generated infographic, but it represents a truthful flux of a big portion of the system.*
+![alt text](./images/rough_ai_infographic.jpg)
+
 https://github.com/user-attachments/assets/900a9fec-3d7f-40d8-b0ea-7ac6fad60e7d
 
 *Purely an animated flow representation, not actual GUI. Many of the stages work invisibly in the background.*
